@@ -1,17 +1,12 @@
-// Create a version control system inspired by Git implementing the data structures - trees, heaps, hashmap from scratch
-// Updates -> Merging done, all classes completed except heap
-// Next -> Add whatever is needed in heap, and put heap instead of vector for system wide analytics.
-// Also make sure that the heap is updated everytime a file is updated
-
 #include<iostream>
 #include<ctime>
 #include<vector>
-#include<algorithm>
 using namespace std;
 
 // Constants
-int SIZE = 1e2;
+const int SIZE = 1e2;
 
+// Nodes for the Tree Class
 class TreeNode{
 public:
     int version_id;
@@ -29,8 +24,8 @@ public:
         content = c;
         message = m;
         created_timestamp = time(nullptr);
+        snapshot_timestamp = 0;
         Parent = nullptr;
-        snapshot_timestamp;
         snapshot_taken = false;
         last_modified = created_timestamp;
     }
@@ -42,10 +37,159 @@ public:
     }
 };
 
-#include <iostream>
-#include <vector>
-using namespace std;
+// Custom hashmap that works for both integers and strings
+template <typename T1, typename T2>
+class HashMap {
 
+private:
+    int hash_fn(int key) {
+        return key%SIZE;
+    }
+
+    int hash_fn(string key) {
+        int x=0;
+        for (char c:key) x+= (c-'\0');
+        return x%SIZE;
+    }
+
+public:
+    vector<T1> keys;
+    vector<T2> nodes;
+    T1 init_val;
+
+    HashMap(T1 initial_val) {
+        this->keys = vector<T1>(SIZE, initial_val);
+        this->nodes = vector<T2>(SIZE, nullptr);
+        init_val=initial_val;
+    }
+
+    void insert(T1 key, T2 val) {
+        int hashed = hash_fn(key);
+        if (keys[hashed] == init_val) {
+            keys[hashed] = key;
+            nodes[hashed] = val;
+        } else {
+            // Full round
+            int tph = hashed;
+            tph = (tph+1)%SIZE;
+            while ((tph!=hashed) && keys[tph]!=init_val) {
+                tph = (tph+1)%SIZE;
+            }
+            if (tph==hashed) cout<<"HASHMAP FULL"<<'\n';
+            else {
+                keys[tph] = key;
+                nodes[tph] = val;
+            }
+        }
+    }
+
+    T2 get(T1 key) {
+        int hashed = hash_fn(key);
+        int temp = hashed;
+        while (keys[hashed]!=key) {hashed = (hashed+1)%SIZE; if(hashed==temp) break;}
+        if (keys[hashed]==key) return nodes[hashed];
+        else return nullptr;
+    }
+};
+
+// Tree Class to store all versions and snapshots of a file
+class Tree {
+public:
+    TreeNode* root;
+    TreeNode* Active;
+    HashMap<int, TreeNode*> version_ctrl{-1};
+    int total_versions;
+    string file_name;
+    vector<pair<time_t, int>> snapshotted_versions;
+    time_t last_modified;
+
+    Tree (string filename) {
+        file_name = filename;
+        TreeNode* file =  new TreeNode(0, "", "created file");
+        root = file;
+        Active = file;
+        file->snapshot("Initial Snapshot");
+        snapshotted_versions.push_back({file->snapshot_timestamp, file->version_id});
+        version_ctrl.insert(file->version_id, file);
+        total_versions = 1;
+        last_modified = file->snapshot_timestamp;
+    }
+
+    ~Tree() {
+        DeleteSubtree(root);
+    }
+
+    void DeleteSubtree(TreeNode* node) {
+        if (!node) return;
+        for (TreeNode* child : node->children) {
+            this->DeleteSubtree(child);
+        }
+        delete node;
+    }
+
+    void insert(string content) {
+        if (Active->snapshot_taken) {
+            TreeNode* newnode = new TreeNode(total_versions, Active->content+content, "new version created");
+            Active->children.push_back(newnode);
+            newnode->Parent = Active;
+            Active = newnode;
+            version_ctrl.insert(total_versions, newnode);
+            total_versions++;
+
+        } else Active->content += content, Active->last_modified=time(nullptr);
+        last_modified = Active->last_modified;
+    }
+
+    void update(string content) {
+        if (Active->snapshot_taken) {
+            TreeNode* newnode  = new TreeNode(total_versions, content, "new version created");
+            Active->children.push_back(newnode);
+            newnode->Parent = Active;
+            Active = newnode;
+            version_ctrl.insert(total_versions, newnode);
+            total_versions++;
+
+        } else Active->content = content, Active->last_modified=time(nullptr);
+        last_modified = Active->last_modified;
+    }
+
+    bool rollback(int v_id) {
+        if (v_id==-1) {Active = Active->Parent; return true;}
+        else {
+            TreeNode* u = version_ctrl.get(v_id);
+            if (u==nullptr) {cout<<"No version with this version id"<<'\n'; return false;}
+            else {
+                Active = u;
+                return true;
+            }
+        }
+    }
+
+    void snapshot(string m) {
+        Active->last_modified = time(nullptr);
+        Active->snapshot(m);
+        cout<<"Snapshot taken for the file "<<file_name<<" version id "<<Active->version_id;
+        snapshotted_versions.push_back({Active->snapshot_timestamp, Active->version_id});
+        last_modified = Active->last_modified;
+    }
+
+    void read() {
+        cout<<Active->content<<'\n';
+    }
+
+    void history() {
+        for (int i=snapshotted_versions.size()-1; i>=0; i--) {
+            TreeNode* v = version_ctrl.get(snapshotted_versions[i].second);
+            cout<<"File "<<i+1<<'\n';
+            cout<<"File Version ID: "<<v->version_id<<'\n';
+            cout<<"Snapshot Timestamp: "<<v->snapshot_timestamp<<'\n';
+            cout<<"Snapshot message: "<<v->message<<'\n';
+            cout<<'\n';
+        }
+    }
+};
+
+// MaxHeap for tracking system wide analytics
 class MaxHeap {
     vector<int> heap;
     vector<Tree*> v;
@@ -90,149 +234,8 @@ public:
         heap[0] = heap.back();
         heap.pop_back();
         v.pop_back();
-        v.pop_back();
         if (!heap.empty()) heapifydown(0);
         return maxVal;
-    }
-};
-
-template <typename T1, typename T2>
-class HashMap {
-
-private:
-    int hash_fn(int key) {
-        return key%SIZE;
-    }
-
-    int hash_fn(string key) {
-        int x=0;
-        for (char c:key) x+= (c-'\0');
-        return x%SIZE;
-    }
-
-public:
-    vector<T1> keys;
-    vector<T2> nodes;
-
-    HashMap() {
-        this->keys = vector<int>(SIZE, -1);
-        this->nodes = vector<T2>(SIZE, nullptr);
-    }
-
-
-
-    void insert(T1 key, T2 val) {
-        int hashed = hash_fn(key);
-        if (keys[hashed] == -1) {
-            keys[hashed] = key;
-            nodes[hashed] = val;
-        } else {
-            // Full round
-            int tph = hashed;
-            tph = (tph+1)%SIZE;
-            while ((tph!=hashed) && keys[tph]!=-1) {
-                tph = (tph+1)%SIZE;
-            }
-            if (tph==hashed) cout<<"HASHMAP FULL"<<'\n';
-            else {
-                keys[tph] = key;
-                nodes[tph] = val;
-            }
-        }
-    }
-
-    T2 get(T1 key) {
-        int hashed = hash_fn(key);
-        while (keys[hashed]!=key) hashed = (hashed+1)%SIZE;
-        if (keys[hashed]==key) return nodes[hashed];
-        else return nullptr;
-    }
-
-};
-
-class Tree {
-public:
-    TreeNode* root;
-    TreeNode* Active;
-    HashMap<int, TreeNode*> version_ctrl;
-    int total_versions;
-    string file_name;
-    vector<pair<time_t, int>> snapshotted_versions;
-    time_t last_modified;
-
-    Tree (string filename) {
-        file_name = filename;
-        TreeNode f(0, "", "created file");
-        TreeNode* file = &f;
-        root = file;
-        Active = file;
-        file->snapshot("Initial Snapshot");
-        snapshotted_versions.push_back({file->snapshot_timestamp, file->version_id});
-        version_ctrl.insert(file->version_id, file);
-        total_versions = 1;
-        last_modified = file->snapshot_timestamp;
-    }
-
-    void insert(string content) {
-        if (Active->snapshot_taken) {
-            TreeNode nn(total_versions, Active->content+content, "new version created");
-            TreeNode* newnode = &nn;
-            Active->children.push_back(newnode);
-            newnode->Parent = Active;
-            Active = newnode;
-            total_versions++;
-
-        } else Active->content += content, Active->last_modified=time(nullptr);
-        last_modified = Active->last_modified;
-    }
-
-    void update(string content) {
-        if (Active->snapshot_taken) {
-            TreeNode nn(total_versions, content, "new version created");
-            TreeNode* newnode = &nn;
-            Active->children.push_back(newnode);
-            newnode->Parent = Active;
-            Active = newnode;
-            version_ctrl.insert(total_versions, newnode);
-            total_versions++;
-
-        } else Active->content = content, Active->last_modified=time(nullptr);
-        last_modified = Active->last_modified;
-    }
-
-    void rollback(int v_id) {
-        if (v_id==-1) Active = Active->Parent;
-        else {
-            TreeNode* u = version_ctrl.get(v_id);
-            if (u==nullptr) cout<<"No version with this version id"<<'\n';
-            else {
-                Active = u;
-            }
-        }
-    }
-
-    void snapshot(string m) {
-        Active->last_modified = time(nullptr);
-        Active->snapshot(m);
-        cout<<"Snapshot taken for the file "<<file_name<<" version id "<<Active->version_id;
-        snapshotted_versions.push_back({Active->snapshot_timestamp, Active->version_id});
-        last_modified = Active->last_modified;
-    }
-
-    void read() {
-        cout<<Active->content<<'\n';
-    }
-
-    void history() {
-        sort(snapshotted_versions.begin(), snapshotted_versions.end());
-        for (int i=0; i<snapshotted_versions.size(); i++) {
-            TreeNode* v = version_ctrl.get(snapshotted_versions[i].second);
-            cout<<"File "<<i+1<<'\n';
-            cout<<"File Version ID: "<<v->version_id<<'\n';
-            cout<<"Snapshot Timestamp: "<<v->snapshot_timestamp<<'\n';
-            cout<<"Snapshot message: "<<v->message<<'\n';
-            cout<<'\n';
-        }
     }
 };
 
@@ -240,79 +243,122 @@ public:
 // Mainloop
 int main() {
     vector<Tree*> ALL_FILES;
-    HashMap<string, Tree*> FileMap;
+    HashMap<string, Tree*> FileMap{""};
     MaxHeap recent_edits;
     MaxHeap most_versions;
     string inp;
     while (true) {
-        cin>>inp;
+        getline(cin, inp);
         vector<string> v;
+        string a;
         for (char c:inp) {
-            string a;
-            if (c==' ' || c=='\n') {
+            if (c==' ') {
                 v.push_back(a);
                 a="";
             } else a+=c;
         }
+        v.push_back(a);
+        // Create a new file
+        if (v[0] == "CREATE") {
+            if (v.size()>2) {cout<<"Spaces are not allowed in the filename"<<'\n'; continue;}
+            Tree* newfile = new Tree(v[1]);
+            ALL_FILES.push_back(newfile);
+            FileMap.insert(v[1], newfile);
+            cout<<"New file "<<v[1]<<" created."<<'\n';
+        }
 
-        if (v[0]!="STOP") {
-            if (v[0] == "CREATE") {
-                Tree* newfile = new Tree(v[1]);
-                ALL_FILES.push_back(newfile);
-                FileMap.insert(v[1], newfile);
-                recent_edits.insert();
-                cout<<"New file "<<v[1]<<" created."<<'\n';
-            } else if (v[0] == "READ") {
-                cout<<"Here are the contents of the Active version of the file "<<v[1]<<'\n';
-                cout<<FileMap.get(v[1])->Active->content<<'\n';
-            } else if (v[0] == "HISTORY") {
-                cout<<"Here are all the snapshotted versions of the file "<<v[1]<<'\n';
-                FileMap.get(v[1])->history();
-            } else if (v[0] == "INSERT") {
-                FileMap.get(v[1])->insert(v[2]);
-                cout<<"Content successfully inserted in the "<<v[1]<<" file."<<'\n';
-            } else if (v[0] == "UPDATE") {
-                FileMap.get(v[1])->update(v[2]);
-                cout<<"Content for "<<v[1]<<" successfully updated."<<'\n';
-            } else if (v[0] == "SNAPSHOT") {
-                FileMap.get(v[1])->snapshot(v[2]);
-            } else if (v[0] == "ROLLBACK") {
-                Tree* k = FileMap.get(v[1]);
-                k->rollback(((v.size()==3)?stoi(v[2]):-1));
-                cout<<"Successfully rolled back to version ID "<<k->Active->version_id<<" for the file "<<v[1]<<'\n';
-            } else if (v[0] == "RECENT_FILES") {
-                for (Tree* element:ALL_FILES) recent_edits.insert(element->last_modified, element);
-                cout<<"Latest Modified files- "<<'\n';
-                for (int i=0; i<ALL_FILES.size(); i++) {
-                    cout<<recent_edits.removeTop()->file_name<<'\n';
-                }
-            } else if (v[0] == "BIGGEST_TREES") {
-                for (Tree* element:ALL_FILES) most_versions.insert(element->total_versions, element);
-                cout<<"Latest Modified files- "<<'\n';
-                for (int i=0; i<ALL_FILES.size(); i++) {
-                    cout<<most_versions.removeTop()->file_name<<'\n';
-                }
-            } else if (v[0] == "HELP") {
-                cout<<"Following are the available commands with their corresponding syntax"<<'\n';
-                cout<<"READ <filename>"<<'\n';
-                cout<<"CREATE <filename>"<<'\n';
-                cout<<"INSERT <filename> <content>"<<'\n';
-                cout<<"UPDATE <filename> <content>"<<'\n';
-                cout<<"SNAPSHOT <filename> <message>"<<'\n';
-                cout<<"ROLLBACK <filename> <version-id>"<<'\n';
-                cout<<"HISTORY <filename>"<<'\n';
-                cout<<"RECENT_FILES"<<'\n';
-                cout<<"BIGGEST_TREES"<<'\n';
-                cout<<"STOP"<<'\n';
-                cout<<"HELP"<<'\n';
-            } else if (v[0] =="STOP") {
+        // Read a file
+        else if (v[0] == "READ") {
+            cout<<"Here are the contents of the Active version of the file "<<v[1]<<'\n';
+            Tree* q = FileMap.get(v[1]);
+            if (q) cout<<q->Active->content<<'\n';
+            else cout<<"Invalid filename"<<'\n';
+        }
 
-                break;
+        // See all the snapshotted versions of a file
+        else if (v[0] == "HISTORY") {
+            cout<<"Here are all the snapshotted versions of the file "<<v[1]<<'\n';
+            Tree* q = FileMap.get(v[1]);
+            if (q) q->history();
+            else cout<<"Invalid filename"<<'\n';
+            
+        }
+
+        // Insert content in a file (append)
+        else if (v[0] == "INSERT") {
+            Tree* q = FileMap.get(v[1]);
+            if (q) q->insert(v[2]), cout<<"Content successfully inserted in the "<<v[1]<<" file."<<'\n';
+            else cout<<"Invalid filename"<<'\n';
+        }
+
+        // Update the content in the file
+        else if (v[0] == "UPDATE") {
+            Tree* q = FileMap.get(v[1]);
+            if (q) q->update(v[2]), cout<<"Content for "<<v[1]<<" successfully updated."<<'\n';
+            else cout<<"Invalid filename"<<'\n';
+        }
+
+        // Snapshot the Active version of the file
+        else if (v[0] == "SNAPSHOT") {
+            Tree* q = FileMap.get(v[1]);
+            if (q) q->snapshot(v[2]);
+            else cout<<"Invalid filename"<<'\n';
+        }
+        
+        // Rollback to a particular version of a file
+        else if (v[0] == "ROLLBACK") {
+            Tree* k = FileMap.get(v[1]);
+            if (k->rollback(((v.size()==3)?stoi(v[2]):-1))) cout<<"Successfully rolled back to version ID "<<k->Active->version_id<<" for the file "<<v[1]<<'\n';
+            else cout<<"Invalid filename"<<'\n';
+        }
+
+        // Check the recently edited files
+        else if (v[0] == "RECENT_FILES") {
+            for (Tree* element:ALL_FILES) recent_edits.insert(element->last_modified, element);
+            cout<<"Latest Modified files- "<<'\n';
+            for (int i=0; i<ALL_FILES.size(); i++) {
+                cout<<recent_edits.removeTop()->file_name<<'\n';
             }
-            else {
-                cout<<"INVALID COMMAND. Please Try Again."<<'\n';
-                cout<<"You can type 'HELP' to see all the available commands"<<'\n';
+        }
+
+        // Checked the files with the maximum number of versions
+        else if (v[0] == "BIGGEST_TREES") {
+            for (Tree* element:ALL_FILES) most_versions.insert(element->total_versions, element);
+            cout<<"Latest Modified files- "<<'\n';
+            for (int i=0; i<ALL_FILES.size(); i++) {
+                cout<<most_versions.removeTop()->file_name<<'\n';
             }
+        }
+
+        // Type help to see the available commands with their syntaxes
+        else if (v[0] == "HELP") {
+            cout<<"Following are the available commands with their corresponding syntax"<<'\n';
+            cout<<"READ <filename>"<<'\n';
+            cout<<"CREATE <filename>"<<'\n';
+            cout<<"INSERT <filename> <content>"<<'\n';
+            cout<<"UPDATE <filename> <content>"<<'\n';
+            cout<<"SNAPSHOT <filename> <message>"<<'\n';
+            cout<<"ROLLBACK <filename> <version-id>"<<'\n';
+            cout<<"HISTORY <filename>"<<'\n';
+            cout<<"RECENT_FILES"<<'\n';
+            cout<<"BIGGEST_TREES"<<'\n';
+            cout<<"STOP"<<'\n';
+            cout<<"HELP"<<'\n';
+        }
+
+        // End command
+        else if (v[0] =="STOP") {
+
+            // Remove all the files to unclog the dynamically allotted memory
+            for (int i=0; i<ALL_FILES.size(); i++) {
+                delete ALL_FILES[i];
+            }
+            break;
+        }
+        // Invalid command check
+        else {
+            cout<<"INVALID COMMAND. Please Try Again."<<'\n';
+            cout<<"You can type 'HELP' to see all the available commands"<<'\n';
         }
     }
 
