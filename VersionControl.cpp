@@ -4,7 +4,7 @@
 using namespace std;
 
 // Constants
-const int SIZE = 1e2;
+const int SIZE = 1e3;
 
 // Nodes for the Tree Class
 class TreeNode{
