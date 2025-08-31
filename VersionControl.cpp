@@ -1,5 +1,6 @@
 #include<iostream>
 #include<ctime>
+#include<algorithm>
 #include<vector>
 using namespace std;
 
@@ -186,6 +187,7 @@ public:
     }
 
     void history() {
+        sort(snapshotted_versions.begin(), snapshotted_versions.end());
         for (int i=snapshotted_versions.size()-1; i>=0; i--) {
             TreeNode* v = version_ctrl.get(snapshotted_versions[i].second);
             cout<<"File "<<i+1<<'\n';
