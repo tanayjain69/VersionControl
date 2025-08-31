@@ -90,6 +90,14 @@ public:
         if (keys[hashed]==key) return nodes[hashed];
         else return nullptr;
     }
+
+    bool delete_entry(T1 key) {
+        int hashed = hash_fn(key);
+        int temp = hashed;
+        while (keys[hashed]!=key) {hashed = (hashed+1)%SIZE; if(hashed==temp) break;}
+        if (keys[hashed]==key) {keys[hashed] = init_val; delete nodes[hashed]; return true;}
+        else return false;
+    }
 };
 
 // Tree Class to store all versions and snapshots of a file
@@ -168,7 +176,7 @@ public:
     void snapshot(string m) {
         Active->last_modified = time(nullptr);
         Active->snapshot(m);
-        cout<<"Snapshot taken for the file "<<file_name<<" version id "<<Active->version_id;
+        cout<<"Snapshot taken for the file "<<file_name<<" version id "<<Active->version_id<<'\n';
         snapshotted_versions.push_back({Active->snapshot_timestamp, Active->version_id});
         last_modified = Active->last_modified;
     }
@@ -277,39 +285,56 @@ int main() {
 
         // See all the snapshotted versions of a file
         else if (v[0] == "HISTORY") {
-            cout<<"Here are all the snapshotted versions of the file "<<v[1]<<'\n';
-            Tree* q = FileMap.get(v[1]);
-            if (q) q->history();
-            else cout<<"Invalid filename"<<'\n';
-            
+            if (v.size() == 2) {
+                cout<<"Here are all the snapshotted versions of the file "<<v[1]<<'\n';
+                Tree* q = FileMap.get(v[1]);
+                if (q) q->history();
+                else cout<<"Invalid filename"<<'\n';
+            } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
 
         // Insert content in a file (append)
         else if (v[0] == "INSERT") {
-            Tree* q = FileMap.get(v[1]);
-            if (q) q->insert(v[2]), cout<<"Content successfully inserted in the "<<v[1]<<" file."<<'\n';
-            else cout<<"Invalid filename"<<'\n';
+            if (v.size()==3) {
+                Tree* q = FileMap.get(v[1]);
+                if (q) q->insert(v[2]), cout<<"Content successfully inserted in the "<<v[1]<<" file."<<'\n';
+                else cout<<"Invalid filename"<<'\n';
+            } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
 
         // Update the content in the file
         else if (v[0] == "UPDATE") {
-            Tree* q = FileMap.get(v[1]);
-            if (q) q->update(v[2]), cout<<"Content for "<<v[1]<<" successfully updated."<<'\n';
-            else cout<<"Invalid filename"<<'\n';
+            if (v.size()==3) {
+                Tree* q = FileMap.get(v[1]);
+                if (q) q->update(v[2]), cout<<"Content for "<<v[1]<<" successfully updated."<<'\n';
+                else cout<<"Invalid filename"<<'\n';
+            } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
 
         // Snapshot the Active version of the file
         else if (v[0] == "SNAPSHOT") {
-            Tree* q = FileMap.get(v[1]);
-            if (q) q->snapshot(v[2]);
-            else cout<<"Invalid filename"<<'\n';
+            if (v.size()==2 || v.size()==3) {
+                Tree* q = FileMap.get(v[1]);
+                if (q) q->snapshot(v[2]);
+                else cout<<"Invalid filename"<<'\n';
+            } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
         
         // Rollback to a particular version of a file
         else if (v[0] == "ROLLBACK") {
-            Tree* k = FileMap.get(v[1]);
-            if (k->rollback(((v.size()==3)?stoi(v[2]):-1))) cout<<"Successfully rolled back to version ID "<<k->Active->version_id<<" for the file "<<v[1]<<'\n';
-            else cout<<"Invalid filename"<<'\n';
+            if (v.size()==2 || v.size()==3) {
+                Tree* k = FileMap.get(v[1]);
+                if (k->rollback(((v.size()==3)?stoi(v[2]):-1))) cout<<"Successfully rolled back to version ID "<<k->Active->version_id<<" for the file "<<v[1]<<'\n';
+                else cout<<"Invalid filename"<<'\n';
+            } else {cout<<"Invalid Command"<<'\n'; continue;}
+        }
+        
+        //File deletion
+        else if (v[0] == "DELETE") {
+            if (v.size()==2) { 
+                if (FileMap.delete_entry(v[1])) cout<<"File deleted"<<'\n';
+                else cout<<"Invalid filename"<<'\n';
+            } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
 
         // Check the recently edited files
@@ -324,7 +349,7 @@ int main() {
         // Checked the files with the maximum number of versions
         else if (v[0] == "BIGGEST_TREES") {
             for (Tree* element:ALL_FILES) most_versions.insert(element->total_versions, element);
-            cout<<"Latest Modified files- "<<'\n';
+            cout<<"Largest Tree files-"<<'\n';
             for (int i=0; i<ALL_FILES.size(); i++) {
                 cout<<most_versions.removeTop()->file_name<<'\n';
             }
@@ -340,6 +365,7 @@ int main() {
             cout<<"SNAPSHOT <filename> <message>"<<'\n';
             cout<<"ROLLBACK <filename> <version-id>"<<'\n';
             cout<<"HISTORY <filename>"<<'\n';
+            cout<<"DELETE <filename>"<<'\n';
             cout<<"RECENT_FILES"<<'\n';
             cout<<"BIGGEST_TREES"<<'\n';
             cout<<"STOP"<<'\n';
