@@ -13,7 +13,7 @@ Following are the implemented commands and their syntax for using this file -
 6. Rollback to a previous version of a file (if no version-id given goes back to the last version) -> ROLLBACK <filename> <version-id>
 7. Print history of a file's versions -> HISTORY <filename>
 8. Delete a file -> DELETE <filename>
-9. Print files in order of their modification time (latest to first) -> RECENT_FILES
-10. Prints the files with most number of versions (max to min) -> BIGGEST_TREES
+9. Print files in order of their modification time (latest to first) -> RECENT_FILES <number>
+10. Prints the files with most number of versions (max to min) -> BIGGEST_TREES <number>
 11. End the program -> STOP
 12. To see the details for each command -> HELP

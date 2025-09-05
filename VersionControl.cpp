@@ -41,7 +41,6 @@ public:
 // Custom hashmap that works for both integers and strings
 template <typename T1, typename T2>
 class HashMap {
-
 private:
     int hash_fn(int key) {
         return key%SIZE;
@@ -257,17 +256,23 @@ int main() {
     MaxHeap recent_edits;
     MaxHeap most_versions;
     string inp;
+
+    // Command loop
     while (true) {
         getline(cin, inp);
+
         vector<string> v;
         string a;
+
+        // Break input command words
         for (char c:inp) {
-            if (c==' ') {
+            if (c==' ' && v.size()<2) {
                 v.push_back(a);
                 a="";
             } else a+=c;
         }
         v.push_back(a);
+
         // Create a new file
         if (v[0] == "CREATE") {
             if (v.size()>2) {cout<<"Spaces are not allowed in the filename"<<'\n'; continue;}
@@ -343,7 +348,8 @@ int main() {
         else if (v[0] == "RECENT_FILES") {
             for (Tree* element:ALL_FILES) recent_edits.insert(element->last_modified, element);
             cout<<"Latest Modified files- "<<'\n';
-            for (int i=0; i<ALL_FILES.size(); i++) {
+            int num_files = stoi(v[1]);
+            for (int i=0; i<num_files; i++) {
                 cout<<recent_edits.removeTop()->file_name<<'\n';
             }
         }
@@ -352,7 +358,8 @@ int main() {
         else if (v[0] == "BIGGEST_TREES") {
             for (Tree* element:ALL_FILES) most_versions.insert(element->total_versions, element);
             cout<<"Largest Tree files-"<<'\n';
-            for (int i=0; i<ALL_FILES.size(); i++) {
+            int num_files = stoi(v[1]);
+            for (int i=0; i<num_files; i++) {
                 cout<<most_versions.removeTop()->file_name<<'\n';
             }
         }
@@ -368,8 +375,8 @@ int main() {
             cout<<"ROLLBACK <filename> <version-id>"<<'\n';
             cout<<"HISTORY <filename>"<<'\n';
             cout<<"DELETE <filename>"<<'\n';
-            cout<<"RECENT_FILES"<<'\n';
-            cout<<"BIGGEST_TREES"<<'\n';
+            cout<<"RECENT_FILES <number>"<<'\n';
+            cout<<"BIGGEST_TREES <number>"<<'\n';
             cout<<"STOP"<<'\n';
             cout<<"HELP"<<'\n';
         }
@@ -383,6 +390,7 @@ int main() {
             }
             break;
         }
+
         // Invalid command check
         else {
             cout<<"INVALID COMMAND. Please Try Again."<<'\n';
