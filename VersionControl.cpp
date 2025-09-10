@@ -191,7 +191,7 @@ public:
             TreeNode* v = version_ctrl.get(snapshotted_versions[i].second);
             cout<<"File "<<i+1<<'\n';
             cout<<"File Version ID: "<<v->version_id<<'\n';
-            cout<<"Snapshot Timestamp: "<<v->snapshot_timestamp<<'\n';
+            cout<<"Snapshot Timestamp: "<<ctime(&(v->snapshot_timestamp));
             cout<<"Snapshot message: "<<v->message<<'\n';
             cout<<'\n';
         }
@@ -229,6 +229,23 @@ public:
         heap.push_back(val);
         v.push_back(file);
         heapifyup(heap.size()-1);
+    }
+
+    // Specifically made to build heap in O(n) time
+    void buildHeap(const vector<Tree*>& elements, bool byVersions = false) {
+        heap.clear();
+        v.clear();
+        for (Tree* t : elements) {
+            if (byVersions)
+                heap.push_back(t->total_versions);
+            else
+                heap.push_back((int)t->last_modified);
+            v.push_back(t);
+        }
+        // bottom-up heapify (minizes operations)
+        for (int i = (heap.size()/2) - 1; i >= 0; i--) {
+            heapifydown(i);
+        }
     }
 
     int getMax() {
@@ -320,7 +337,7 @@ int main() {
 
         // Snapshot the Active version of the file
         else if (v[0] == "SNAPSHOT") {
-            if (v.size()==2 || v.size()==3) {
+            if (v.size()==3) {
                 Tree* q = FileMap.get(v[1]);
                 if (q) q->snapshot(v[2]);
                 else cout<<"Invalid filename"<<'\n';
@@ -346,7 +363,7 @@ int main() {
 
         // Check the recently edited files
         else if (v[0] == "RECENT_FILES") {
-            for (Tree* element:ALL_FILES) recent_edits.insert(element->last_modified, element);
+            recent_edits.buildHeap(ALL_FILES, false);
             cout<<"Latest Modified files- "<<'\n';
             int num_files = stoi(v[1]);
             for (int i=0; i<num_files; i++) {
@@ -356,7 +373,7 @@ int main() {
 
         // Checked the files with the maximum number of versions
         else if (v[0] == "BIGGEST_TREES") {
-            for (Tree* element:ALL_FILES) most_versions.insert(element->total_versions, element);
+            most_versions.buildHeap(ALL_FILES, true);
             cout<<"Largest Tree files-"<<'\n';
             int num_files = stoi(v[1]);
             for (int i=0; i<num_files; i++) {
