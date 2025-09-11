@@ -144,7 +144,10 @@ public:
             version_ctrl.insert(total_versions, newnode);
             total_versions++;
 
-        } else Active->content += content, Active->last_modified=time(nullptr);
+        } else {
+            Active->content += content; 
+            Active->last_modified=time(nullptr);
+        }
         last_modified = Active->last_modified;
     }
 
@@ -157,7 +160,10 @@ public:
             version_ctrl.insert(total_versions, newnode);
             total_versions++;
 
-        } else Active->content = content, Active->last_modified=time(nullptr);
+        } else {
+            Active->content = content; 
+            Active->last_modified=time(nullptr);
+        }
         last_modified = Active->last_modified;
     }
 
@@ -292,7 +298,10 @@ int main() {
 
         // Create a new file
         if (v[0] == "CREATE") {
-            if (v.size()>2) {cout<<"Spaces are not allowed in the filename"<<'\n'; continue;}
+            if (v.size()>2) {
+                cout<<"Spaces are not allowed in the filename"<<'\n'; 
+                continue;
+            }
             Tree* newfile = new Tree(v[1]);
             ALL_FILES.push_back(newfile);
             FileMap.insert(v[1], newfile);
@@ -301,18 +310,22 @@ int main() {
 
         // Read a file
         else if (v[0] == "READ") {
-            cout<<"Here are the contents of the Active version of the file "<<v[1]<<'\n';
             Tree* q = FileMap.get(v[1]);
-            if (q) cout<<q->Active->content<<'\n';
+            if (q) {
+                cout<<"Here are the contents of the Active version of the file "<<v[1]<<'\n';
+                cout<<q->Active->content<<'\n';
+            }
             else cout<<"Invalid filename"<<'\n';
         }
 
         // See all the snapshotted versions of a file
         else if (v[0] == "HISTORY") {
             if (v.size() == 2) {
-                cout<<"Here are all the snapshotted versions of the file "<<v[1]<<'\n';
                 Tree* q = FileMap.get(v[1]);
-                if (q) q->history();
+                if (q) {
+                    cout<<"Here are all the snapshotted versions of the file "<<v[1]<<'\n';
+                    q->history();
+                }
                 else cout<<"Invalid filename"<<'\n';
             } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
@@ -321,7 +334,10 @@ int main() {
         else if (v[0] == "INSERT") {
             if (v.size()==3) {
                 Tree* q = FileMap.get(v[1]);
-                if (q) q->insert(v[2]), cout<<"Content successfully inserted in the "<<v[1]<<" file."<<'\n';
+                if (q) {
+                    q->insert(v[2]); 
+                    cout<<"Content successfully inserted in the "<<v[1]<<" file."<<'\n';
+                }
                 else cout<<"Invalid filename"<<'\n';
             } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
@@ -330,7 +346,10 @@ int main() {
         else if (v[0] == "UPDATE") {
             if (v.size()==3) {
                 Tree* q = FileMap.get(v[1]);
-                if (q) q->update(v[2]), cout<<"Content for "<<v[1]<<" successfully updated."<<'\n';
+                if (q) {
+                    q->update(v[2]); 
+                    cout<<"Content for "<<v[1]<<" successfully updated."<<'\n';
+                }
                 else cout<<"Invalid filename"<<'\n';
             } else {cout<<"Invalid Command"<<'\n'; continue;}
         }
