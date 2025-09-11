@@ -402,7 +402,7 @@ int main() {
         else if (v[0] =="STOP") {
 
             // Remove all the files to unclog the dynamically allotted memory
-            for (int i=0; i<ALL_FILES.size(); i++) {
+            for (int i=0; i<(int)(ALL_FILES.size()); i++) {
                 delete ALL_FILES[i];
             }
             break;
