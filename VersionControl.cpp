@@ -135,7 +135,7 @@ public:
 
     void insert(string content) {
         if (Active->snapshot_taken) {
-            TreeNode* newnode = new TreeNode(total_versions, Active->content + content, "new version created");
+            TreeNode* newnode = new TreeNode(total_versions, Active->content+content, "new version created");
             Active->children.push_back(newnode);
             newnode->Parent = Active;
             Active = newnode;
@@ -201,9 +201,9 @@ public:
 
     void history() {
         sort(snapshotted_versions.begin(), snapshotted_versions.end());
-        for (int i = snapshotted_versions.size() - 1; i >= 0; i--) {
+        for (int i=snapshotted_versions.size() - 1; i >= 0; i--) {
             TreeNode* v = version_ctrl.get(snapshotted_versions[i].second);
-            cout<<"File "<<i + 1<<'\n';
+            cout<<"File "<<i+1<<'\n';
             cout<<"File Version ID: "<<v->version_id<<'\n';
             cout<<"Snapshot Timestamp: "<<ctime(&(v->snapshot_timestamp));
             cout<<"Snapshot message: "<<v->message<<'\n';
@@ -219,22 +219,22 @@ private:
     vector<Tree*> v; 
 
     void heapifyup(int idx) {
-        while (idx > 0 && heap[(idx - 1) / 2] < heap[idx]) {
-            swap(heap[idx], heap[(idx - 1) / 2]);
-            swap(v[idx], v[(idx - 1) / 2]);
-            idx = (idx - 1) / 2;
+        while (idx>0 && heap[(idx-1)/2]<heap[idx]) {
+            swap(heap[idx], heap[(idx-1)/2]);
+            swap(v[idx], v[(idx-1)/2]);
+            idx = (idx-1)/2;
         }
     }
 
     void heapifydown(int idx) {
         int n = heap.size();
         while (true) {
-            int left = 2 * idx + 1;
-            int right = 2 * idx + 2;
+            int left = 2*idx+1;
+            int right = 2*idx+2;
             int largest = idx;
 
-            if (left < n && heap[left] > heap[largest]) largest = left;
-            if (right < n && heap[right] > heap[largest]) largest = right;
+            if (left<n && heap[left]>heap[largest]) largest = left;
+            if (right<n && heap[right]>heap[largest]) largest = right;
 
             if (largest == idx) break;
 
@@ -252,22 +252,22 @@ public:
     }
     
     void update(Tree* file, int new_priority) {
-        int index_to_update = -1;
-        for (int i = 0; i < v.size(); ++i) {
+        int idx = -1;
+        for (int i=0; i<(int)v.size(); i++) {
             if (v[i] == file) {
-                index_to_update = i;
+                idx = i;
                 break;
             }
         }
 
-        if (index_to_update != -1) {
-            int old_priority = heap[index_to_update];
-            heap[index_to_update] = new_priority;
+        if (idx!=-1) {
+            int old_priority = heap[idx];
+            heap[idx] = new_priority;
 
-            if (new_priority > old_priority) {
-                heapifyup(index_to_update);
+            if (new_priority>old_priority) {
+                heapifyup(idx);
             } else {
-                heapifydown(index_to_update);
+                heapifydown(idx);
             }
         }
     }
@@ -313,7 +313,7 @@ int main() {
 
         // Break input command words
         for (char c : inp) {
-            if (c == ' ' && v.size() < 2) {
+            if (c == ' ' && v.size()<2) {
                 v.push_back(a);
                 a = "";
             } else a += c;
@@ -322,7 +322,7 @@ int main() {
 
         // Create a new file
         if (v[0] == "CREATE") {
-            if (v.size() > 2) {
+            if (v.size()>2) {
                 cout<<"Spaces are not allowed in the filename"<<'\n'<<'\n';
                 continue;
             }
@@ -432,10 +432,10 @@ int main() {
         else if (v[0] == "DELETE") {
             if (v.size() == 2) {
                 if (FileMap.delete_entry(v[1])) {
-                    for (int i = 0; i < ((int)ALL_FILES.size()); i++) {
+                    for (int i=0; i<((int)ALL_FILES.size()); i++) {
                         if (ALL_FILES[i]->file_name == v[1]) {
                              delete ALL_FILES[i];
-                             ALL_FILES.erase(ALL_FILES.begin() + i);
+                             ALL_FILES.erase(ALL_FILES.begin()+i);
                              break;
                         }
                     }
@@ -452,7 +452,7 @@ int main() {
             MaxHeap temp_heap = recent_edits;
             cout<<"Latest Modified files- "<<'\n';
             int num_files = stoi(v[1]);
-            for (int i = 0; i < min((int)ALL_FILES.size(), num_files); i++) {
+            for (int i=0; i<min((int)ALL_FILES.size(), num_files); i++) {
                 Tree* m = temp_heap.removeTop();
                 if (m) cout<<m->file_name<<'\n';
                 else break;
@@ -465,7 +465,7 @@ int main() {
             MaxHeap temp_heap = most_versions;
             cout<<"Largest Tree files-"<<'\n';
             int num_files = stoi(v[1]);
-            for (int i = 0; i < min((int)ALL_FILES.size(), num_files); i++) {
+            for (int i=0; i<min((int)ALL_FILES.size(), num_files); i++) {
                 Tree* m = temp_heap.removeTop();
                 if (m) cout<<m->file_name<<'\n';
                 else break;
